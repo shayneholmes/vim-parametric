@@ -69,6 +69,11 @@ endfunction
 function s:get_metrics(range)
   let firstline = a:range[0]
   let followingline = a:range[1]
+
+  let lines = followingline - firstline
+
+  call assert_true(lines >= 0, 'Expected lines non-negative, but got '.lines)
+
   let firstchar = line2byte(firstline)
   let followingchar = line2byte(followingline)
 
@@ -84,6 +89,7 @@ function s:get_metrics(range)
 
   return {
         \ 'chars': chars,
+        \ 'lines': lines,
         \ }
 endfunction
 
