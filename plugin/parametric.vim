@@ -2,19 +2,19 @@
 
 " get wordcount {{{1
 function! g:ParametricCount()
-  if s:isCacheValid()
+  if s:is_cache_valid()
     return b:parametric_last_count
   endif
 
   let b:parametric_changedtick = b:changedtick
   let b:parametric_updates = get(b:, 'parametric_updates', 0) + 1
 
-  let b:parametric_last_range = s:getCurrentParagraphLineRange()
-  let b:parametric_last_count = s:getCharacterCount(b:parametric_last_range)
+  let b:parametric_last_range = s:get_paragraph_range()
+  let b:parametric_last_count = s:get_chars_in_range(b:parametric_last_range)
   return b:parametric_last_count
 endfunction
 
-function s:isCacheValid()
+function s:is_cache_valid()
   let currentline = line('.')
   return get(b:, 'parametric_changedtick', 0) == b:changedtick
         \ && exists('b:parametric_last_range')
@@ -22,7 +22,7 @@ function s:isCacheValid()
         \ && currentline < b:parametric_last_range[1]
 endfunction
 
-function s:getCurrentParagraphLineRange()
+function s:get_paragraph_range()
   let blanklinepattern = '\m^$'
 
   let currentline = line('.')
@@ -54,7 +54,7 @@ function s:getCurrentParagraphLineRange()
   return [firstline, followingline]
 endfunction
 
-function s:getCharacterCount(range)
+function s:get_chars_in_range(range)
   let firstline = a:range[0]
   let followingline = a:range[1]
   let firstchar = line2byte(firstline)
@@ -82,8 +82,8 @@ endfunction
 
 " airline functions {{{1
 if !empty(globpath(&runtimepath, 'plugin/airline.vim', 1))
-  function! ParametricAirlinePlugin(...)
-    function! ParametricAirlineFormat()
+  function! g:ParametricAirlinePlugin(...)
+    function! g:ParametricAirlineFormat()
       let str = printf('¶ %s', ParametricCount())
       return str . g:airline_symbols.space . g:airline_right_alt_sep . g:airline_symbols.space
     endfunction
