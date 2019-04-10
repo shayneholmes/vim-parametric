@@ -10,6 +10,8 @@ function! g:ParametricCount()
   let b:parametric_updates = get(b:, 'parametric_updates', 0) + 1
 
   let b:parametric_range = s:get_paragraph_range()
+  let b:parametric_cache_inclusive = s:get_cached_range(b:parametric_range)
+
   let b:parametric_metrics = s:get_metrics(b:parametric_range)
 
   let b:parametric_result = printf("%d", b:parametric_metrics['bytes'])
@@ -30,6 +32,28 @@ function s:is_cache_valid()
         \ && exists('b:parametric_result')
         \ && current_line >= b:parametric_cache_inclusive[0]
         \ && current_line <= b:parametric_cache_inclusive[1]
+endfunction
+
+" Return lines that are safe for us not to reevaluate
+function s:get_cached_range(paragraph_range)
+  let first_line = a:paragraph_range[0]
+  let following_line = a:paragraph_range[1]
+
+  let cached_begin = first_line
+  let cached_end = following_line
+
+  if first_line != following_line
+    " non-empty paragraph, the line above it is safe
+    let cached_begin -= 1
+
+    if !empty(getline(following_line+1))
+      " there is a paragraph immediately following this one, so the line in between belongs
+      " to that one
+      let cached_end -= 1
+    end
+  end
+
+  return [cached_begin, cached_end]
 endfunction
 
 " return the range of the active paragraph: [first_line, following_line]
@@ -65,21 +89,6 @@ function s:get_paragraph_range()
 
   let first_line = preceding_blank + 1
   let following_line = following_blank
-
-  let cached_begin = preceding_blank
-  if first_line == following_line
-    " empty paragraph, we need to reevaluate if we move out of it at all
-    let cached_begin = first_line
-  end
-
-  let cached_end = following_blank
-  if !empty(getline(following_blank+1))
-    " paragraph immediately following this one, so the line in between belongs
-    " to that one
-    let cached_end -= 1
-  end
-
-  let b:parametric_cache_inclusivo = [cached_begin, cached_end]
 
   return [first_line, following_line]
 endfunction
