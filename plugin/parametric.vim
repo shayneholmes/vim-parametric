@@ -1,3 +1,6 @@
+" vim: et ts=2 sts=2 sw=2 fdm=marker
+
+" get wordcount {{{1
 function! g:ParametricCount()
   if s:isCacheValid()
     return b:parametric_last_count
@@ -77,7 +80,7 @@ function s:getCharacterCount(range)
   return b:parametric_last_count
 endfunction
 
-" add to airline if available
+" airline functions {{{1
 if !empty(globpath(&runtimepath, 'plugin/airline.vim', 1))
   function! ParametricAirlinePlugin(...)
     function! ParametricAirlineFormat()
