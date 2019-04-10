@@ -79,9 +79,9 @@ endfunction
 
 " add to airline if available
 if !empty(globpath(&runtimepath, 'plugin/airline.vim', 1))
-  function! ParagraphCharacterCountAirlinePlugin(...)
-    function! ParagraphCharacterCountFormat()
-      let str = printf('¶ %s', ParagraphCharacterCount())
+  function! ParametricAirlinePlugin(...)
+    function! ParametricAirlineFormat()
+      let str = printf('¶ %s', ParametricCount())
       return str . g:airline_symbols.space . g:airline_right_alt_sep . g:airline_symbols.space
     endfunction
 
@@ -89,9 +89,9 @@ if !empty(globpath(&runtimepath, 'plugin/airline.vim', 1))
       \ ['asciidoc', 'help', 'mail', 'markdown', 'org', 'rst', 'tex', 'text'])
     if index(filetypes, &filetype) > -1
       call airline#extensions#prepend_to_section(
-          \ 'z', '%{ParagraphCharacterCountFormat()}')
+          \ 'z', '%{ParametricAirlineFormat()}')
     endif
   endfunction
 
-  call airline#add_statusline_func('ParagraphCharacterCountAirlinePlugin')
+  call airline#add_statusline_func('ParametricAirlinePlugin')
 endif
