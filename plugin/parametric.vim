@@ -1,9 +1,20 @@
 " Return the range of the current paragraph
-" returns [firstLine, followingLine]
-function! s:getCurrentParagraphLineRange()
+" Returns [firstLine, followingLine, changed]
+" Will cache unless cursor moves outside previous range, or if forced
+function s:getCurrentParagraphLineRange()
+  let currentline = line('.')
+
+  if !s:doc_changed()
+        \ && exists('b:pch_last_range')
+        \ && currentline >= b:pch_last_range[0] - 1
+        \ && currentline < b:pch_last_range[1]
+    return b:pch_last_range + [v:false]
+  endif
+
+  let b:pch_range_updates = get(b:, 'pch_range_updates', 0) + 1
+
   let blanklinepattern = '\m^$'
 
-  let currentline = line('.')
   if empty(getline(currentline))
     " on a paragraph boundary now, choose which direction to look
     if !empty(getline(currentline+1))
@@ -29,11 +40,25 @@ function! s:getCurrentParagraphLineRange()
   let firstline = precedingblank + 1
   let followingline = followingblank
 
-  return [firstline, followingline]
+  let b:pch_last_range = [firstline, followingline]
+  return b:pch_last_range + [v:true]
+endfunction
+
+function s:doc_changed()
+  if get(b:, 'pch_changedtick', 0) != b:changedtick
+    let b:pch_changedtick = b:changedtick
+    return v:true
+  endif
+  return v:false
 endfunction
 
 function! g:ParagraphCharacterCount()
   let bounds = s:getCurrentParagraphLineRange()
+
+  let bounds_updated = bounds[2]
+  if !bounds_updated
+    return b:pch_last_count
+  endif
 
   let firstline = bounds[0]
   let followingline = bounds[1]
@@ -51,10 +76,13 @@ function! g:ParagraphCharacterCount()
   call assert_true(size >= 0, 'Expected size non-negative, but got '.size)
 
   if &verbose > 0
-    return printf('%d@%d -> %d@%d = %d', firstline, firstchar, followingline, followingchar, size)
+    let b:pch_last_count = printf(
+          \ '%d updates | %d@%d -> %d@%d = %d',
+          \ b:pch_range_updates, firstline, firstchar, followingline, followingchar, size)
   else
-    return printf('%4d', size)
+    let b:pch_last_count = printf('%d', size)
   endif
+  return b:pch_last_count
 endfunction
 
 if !empty(globpath(&runtimepath, 'plugin/airline.vim', 1))
