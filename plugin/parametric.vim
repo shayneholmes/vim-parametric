@@ -77,6 +77,7 @@ function s:getCharacterCount(range)
   return b:parametric_last_count
 endfunction
 
+" add to airline if available
 if !empty(globpath(&runtimepath, 'plugin/airline.vim', 1))
   function! ParagraphCharacterCountAirlinePlugin(...)
     function! ParagraphCharacterCountFormat()
