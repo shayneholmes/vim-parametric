@@ -25,77 +25,142 @@ function! g:ParametricCount()
 endfunction
 
 function s:is_cache_valid()
-  let currentline = line('.')
+  let current_line = line('.')
   return get(b:, 'parametric_changedtick', 0) == b:changedtick
         \ && exists('b:parametric_result')
-        \ && exists('b:parametric_range')
-        \ && currentline >= b:parametric_range[0] - 1
-        \ && currentline < b:parametric_range[1]
+        \ && current_line >= b:parametric_cache_inclusive[0]
+        \ && current_line <= b:parametric_cache_inclusive[1]
 endfunction
 
 function s:get_paragraph_range()
-  let blanklinepattern = '\m^$'
+  let blankline_pattern = '\m^$'
 
-  let currentline = line('.')
-  if empty(getline(currentline))
+  let current_line = line('.')
+  if empty(getline(current_line))
     " on a paragraph boundary now, choose which direction to look
-    if !empty(getline(currentline+1))
+    if !empty(getline(current_line+1))
       " there's a paragraph just below; use that one
-      let precedingblank = currentline
+      let preceding_blank = current_line
     else
       " nothing forward; consider this the end (look backward)
-      let followingblank = currentline
+      let following_blank = current_line
     endif
   endif
 
-  if !exists('precedingblank')
-    let precedingblank = search(blanklinepattern, 'nWb')
+  if !exists('preceding_blank')
+    let preceding_blank = search(blankline_pattern, 'nWb')
   endif
-  if !exists('followingblank')
-    let followingblank = search(blanklinepattern, 'nW')
-    if followingblank == 0
+  if !exists('following_blank')
+    let following_blank = search(blankline_pattern, 'nW')
+    if following_blank == 0
       " no match; treat eof as blank
-      let followingblank = line('$')+1
+      let following_blank = line('$')+1
     endif
   endif
 
-  let firstline = precedingblank + 1
-  let followingline = followingblank
+  let first_line = preceding_blank + 1
+  let following_line = following_blank
 
-  return [firstline, followingline]
+  let cached_begin = preceding_blank
+  if first_line == following_line
+    " empty paragraph, we need to reevaluate if we move out of it at all
+    let cached_begin = first_line
+  end
+
+  let cached_end = following_blank
+  if !empty(getline(following_blank+1))
+    " paragraph immediately following this one, so the line in between belongs
+    " to that one
+    let cached_end -= 1
+  end
+
+  let b:parametric_cache_inclusivo = [cached_begin, cached_end]
+
+  return [first_line, following_line]
 endfunction
 
 function s:get_metrics(range)
-  let firstline = a:range[0]
-  let followingline = a:range[1]
+  if mode() =~? '[vs]'
+    " visual mode; don't try for now
+    return {
+          \ 'bytes': 0,
+          \ 'chars': 0,
+          \ 'words': 0,
+          \ 'lines': 0,
+          \ }
+  endif
 
-  let lines = followingline - firstline
+  let first_line = a:range[0]
+  let following_line = a:range[1]
+
+  " compute lines directly, since wordcount() doesn't provide them
+  let lines = following_line - first_line
 
   call assert_true(lines >= 0, 'Expected lines non-negative, but got '.lines)
 
-  let cursor_position = getcurpos()
-  call cursor(firstline, 1)
-  let first_metrics = wordcount()
-  if followingline > line('$')
-    " the paragraph is at the end, so buffer information has the metrics
-    " remove the trailing newline, though
-    let last_metrics = {
-          \ 'cursor_bytes': first_metrics['bytes'] - 1,
-          \ 'cursor_chars': first_metrics['chars'] - 1,
-          \ 'cursor_words': first_metrics['words'],
-          \ }
-  else
-    call cursor(followingline, 1)
-    let last_metrics = wordcount()
-  endif
-  call setpos('.', cursor_position)
+  let metrics_initial = s:get_initial_metrics(first_line)
+  let metrics_final = s:get_final_metrics(following_line)
 
   return {
-        \ 'bytes': last_metrics['cursor_bytes'] - first_metrics['cursor_bytes'],
-        \ 'chars': last_metrics['cursor_chars'] - first_metrics['cursor_chars'],
-        \ 'words': last_metrics['cursor_words'] - first_metrics['cursor_words'],
+        \ 'bytes': metrics_final['bytes'] - metrics_initial['bytes'],
+        \ 'chars': metrics_final['chars'] - metrics_initial['chars'],
+        \ 'words': metrics_final['words'] - metrics_initial['words'],
         \ 'lines': lines,
+        \ 'range': b:parametric_range,
+        \ 'cache_range': b:parametric_cache_inclusive,
         \ }
+endfunction
+
+function s:get_initial_metrics(line)
+  if a:line == 1
+    " first line, hard-code this because wordcount() counts the word the
+    " cursor is on, which may be a word, or may not, if it's whitespace
+    return {
+          \ 'bytes': 1,
+          \ 'chars': 1,
+          \ 'words': 0,
+          \ }
+  endif
+
+  let measurement_line = a:line - 1 " this should be a blank line
+  let save_pos = getcurpos()
+  call cursor(measurement_line, 1)
+  let wc = wordcount()
+  call setpos('.', save_pos)
+
+  " add a byte and a character to account for the newline
+  let metrics = {
+        \ 'bytes': wc['cursor_bytes'] + 1,
+        \ 'chars': wc['cursor_chars'] + 1,
+        \ 'words': wc['cursor_words']
+        \ }
+
+  return metrics
+endfunction
+
+function s:get_final_metrics(line)
+  if a:line > line('$')
+    " the paragraph is at the end, so buffer information has the metrics
+    let wc = wordcount()
+    let metrics = {
+          \ 'bytes': wc['bytes'],
+          \ 'chars': wc['chars'],
+          \ 'words': wc['words'],
+          \ }
+  else
+    let save_pos = getcurpos()
+    call cursor(a:line, 1)
+    let wc = wordcount()
+    call setpos('.', save_pos)
+        " remove the trailing newline, though
+    let metrics = {
+          \ 'bytes': wc['cursor_bytes'] - 1,
+          \ 'chars': wc['cursor_chars'] - 1,
+          \ 'words': wc['cursor_words']
+          \ }
+  endif
+
+  return metrics
 endfunction
 
 " airline functions {{{1
