@@ -3,23 +3,35 @@
 " get wordcount {{{1
 function! g:ParametricCount()
   if s:is_cache_valid()
-    return b:parametric_last_count
+    return b:parametric_result
   endif
 
   let b:parametric_changedtick = b:changedtick
   let b:parametric_updates = get(b:, 'parametric_updates', 0) + 1
 
-  let b:parametric_last_range = s:get_paragraph_range()
-  let b:parametric_last_count = s:get_chars_in_range(b:parametric_last_range)
-  return b:parametric_last_count
+  let b:parametric_range = s:get_paragraph_range()
+  let b:parametric_metrics = s:get_metrics(b:parametric_range)
+
+  let b:parametric_result = printf("%d", b:parametric_metrics['chars'])
+
+  if &verbose > 0 " debug TODO: Move this to a formatter
+    let b:parametric_result = printf(
+          \ '%d updates | lines %d-%d = %d',
+          \ b:parametric_updates,
+          \ b:parametric_range[0], b:parametric_range[0],
+          \ b:parametric_metrics['chars'])
+  endif
+
+  return b:parametric_result
 endfunction
 
 function s:is_cache_valid()
   let currentline = line('.')
   return get(b:, 'parametric_changedtick', 0) == b:changedtick
-        \ && exists('b:parametric_last_range')
-        \ && currentline >= b:parametric_last_range[0] - 1
-        \ && currentline < b:parametric_last_range[1]
+        \ && exists('b:parametric_result')
+        \ && exists('b:parametric_range')
+        \ && currentline >= b:parametric_range[0] - 1
+        \ && currentline < b:parametric_range[1]
 endfunction
 
 function s:get_paragraph_range()
@@ -54,7 +66,7 @@ function s:get_paragraph_range()
   return [firstline, followingline]
 endfunction
 
-function s:get_chars_in_range(range)
+function s:get_metrics(range)
   let firstline = a:range[0]
   let followingline = a:range[1]
   let firstchar = line2byte(firstline)
@@ -66,18 +78,13 @@ function s:get_chars_in_range(range)
     let followingchar = 0
   endif
 
-  let size = followingchar - firstchar
+  let chars = followingchar - firstchar
 
-  call assert_true(size >= 0, 'Expected size non-negative, but got '.size)
+  call assert_true(chars >= 0, 'Expected chars non-negative, but got '.chars)
 
-  if &verbose > 0
-    let b:parametric_last_count = printf(
-          \ '%d updates | %d@%d -> %d@%d = %d',
-          \ b:parametric_updates, firstline, firstchar, followingline, followingchar, size)
-  else
-    let b:parametric_last_count = printf('%d', size)
-  endif
-  return b:parametric_last_count
+  return {
+        \ 'chars': chars,
+        \ }
 endfunction
 
 " airline functions {{{1
