@@ -12,14 +12,14 @@ function! g:ParametricCount()
   let b:parametric_range = s:get_paragraph_range()
   let b:parametric_metrics = s:get_metrics(b:parametric_range)
 
-  let b:parametric_result = printf("%d", b:parametric_metrics['chars'])
+  let b:parametric_result = printf("%d", b:parametric_metrics['bytes'])
 
   if &verbose > 0 " debug TODO: Move this to a formatter
     let b:parametric_result = printf(
           \ '%d updates | lines %d-%d = %d',
           \ b:parametric_updates,
           \ b:parametric_range[0], b:parametric_range[0],
-          \ b:parametric_metrics['chars'])
+          \ b:parametric_metrics['bytes'])
   endif
 
   return b:parametric_result
@@ -66,6 +66,8 @@ function s:get_paragraph_range()
   return [firstline, followingline]
 endfunction
 
+" TODO: Characters as well as bytes
+" TODO: Words
 function s:get_metrics(range)
   let firstline = a:range[0]
   let followingline = a:range[1]
@@ -74,21 +76,21 @@ function s:get_metrics(range)
 
   call assert_true(lines >= 0, 'Expected lines non-negative, but got '.lines)
 
-  let firstchar = line2byte(firstline)
-  let followingchar = line2byte(followingline)
+  let firstbyte = line2byte(firstline)
+  let followingbyte = line2byte(followingline)
 
-  if firstchar < 0 || followingchar < 0
+  if firstbyte < 0 || followingbyte < 0
     " invalid lines, like in an empty file
-    let firstchar = 0
-    let followingchar = 0
+    let firstbyte = 0
+    let followingbyte = 0
   endif
 
-  let chars = followingchar - firstchar
+  let bytes = followingbyte - firstbyte
 
-  call assert_true(chars >= 0, 'Expected chars non-negative, but got '.chars)
+  call assert_true(bytes >= 0, 'Expected bytes non-negative, but got '.bytes)
 
   return {
-        \ 'chars': chars,
+        \ 'bytes': bytes,
         \ 'lines': lines,
         \ }
 endfunction
