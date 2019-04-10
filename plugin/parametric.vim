@@ -1,20 +1,28 @@
-" Return the range of the current paragraph
-" Returns [firstLine, followingLine, changed]
-" Will cache unless cursor moves outside previous range, or if forced
-function s:getCurrentParagraphLineRange()
-  let currentline = line('.')
+function! g:ParametricCount()
+  if s:isCacheValid()
+    return b:parametric_last_count
+  endif
 
-  if !s:doc_changed()
+  let b:parametric_changedtick = b:changedtick
+  let b:parametric_updates = get(b:, 'parametric_updates', 0) + 1
+
+  let b:parametric_last_range = s:getCurrentParagraphLineRange()
+  let b:parametric_last_count = s:getCharacterCount(b:parametric_last_range)
+  return b:parametric_last_count
+endfunction
+
+function s:isCacheValid()
+  let currentline = line('.')
+  return get(b:, 'parametric_changedtick', 0) == b:changedtick
         \ && exists('b:parametric_last_range')
         \ && currentline >= b:parametric_last_range[0] - 1
         \ && currentline < b:parametric_last_range[1]
-    return b:parametric_last_range + [v:false]
-  endif
+endfunction
 
-  let b:parametric_range_updates = get(b:, 'parametric_range_updates', 0) + 1
-
+function s:getCurrentParagraphLineRange()
   let blanklinepattern = '\m^$'
 
+  let currentline = line('.')
   if empty(getline(currentline))
     " on a paragraph boundary now, choose which direction to look
     if !empty(getline(currentline+1))
@@ -40,28 +48,12 @@ function s:getCurrentParagraphLineRange()
   let firstline = precedingblank + 1
   let followingline = followingblank
 
-  let b:parametric_last_range = [firstline, followingline]
-  return b:parametric_last_range + [v:true]
+  return [firstline, followingline]
 endfunction
 
-function s:doc_changed()
-  if get(b:, 'parametric_changedtick', 0) != b:changedtick
-    let b:parametric_changedtick = b:changedtick
-    return v:true
-  endif
-  return v:false
-endfunction
-
-function! g:ParagraphCharacterCount()
-  let bounds = s:getCurrentParagraphLineRange()
-
-  let bounds_updated = bounds[2]
-  if !bounds_updated
-    return b:parametric_last_count
-  endif
-
-  let firstline = bounds[0]
-  let followingline = bounds[1]
+function s:getCharacterCount(range)
+  let firstline = a:range[0]
+  let followingline = a:range[1]
   let firstchar = line2byte(firstline)
   let followingchar = line2byte(followingline)
 
@@ -78,7 +70,7 @@ function! g:ParagraphCharacterCount()
   if &verbose > 0
     let b:parametric_last_count = printf(
           \ '%d updates | %d@%d -> %d@%d = %d',
-          \ b:parametric_range_updates, firstline, firstchar, followingline, followingchar, size)
+          \ b:parametric_updates, firstline, firstchar, followingline, followingchar, size)
   else
     let b:parametric_last_count = printf('%d', size)
   endif
