@@ -2,10 +2,6 @@
 
 " get wordcount {{{1
 function! g:ParametricCount()
-  if s:is_cache_valid()
-    return b:parametric_result
-  endif
-
   let b:parametric_changedtick = b:changedtick
   let b:parametric_updates = get(b:, 'parametric_updates', 0) + 1
 
@@ -22,14 +18,6 @@ function! g:ParametricCount()
   endif
 
   return b:parametric_result
-endfunction
-
-function s:is_cache_valid()
-  let current_line = line('.')
-  return get(b:, 'parametric_changedtick', 0) == b:changedtick
-        \ && exists('b:parametric_result')
-        \ && current_line >= b:parametric_cache_inclusive[0]
-        \ && current_line <= b:parametric_cache_inclusive[1]
 endfunction
 
 function s:get_paragraph_range()
@@ -60,21 +48,6 @@ function s:get_paragraph_range()
 
   let first_line = preceding_blank + 1
   let following_line = following_blank
-
-  let cached_begin = preceding_blank
-  if first_line == following_line
-    " empty paragraph, we need to reevaluate if we move out of it at all
-    let cached_begin = first_line
-  end
-
-  let cached_end = following_blank
-  if !empty(getline(following_blank+1))
-    " paragraph immediately following this one, so the line in between belongs
-    " to that one
-    let cached_end -= 1
-  end
-
-  let b:parametric_cache_inclusivo = [cached_begin, cached_end]
 
   return [first_line, following_line]
 endfunction
@@ -107,7 +80,6 @@ function s:get_metrics(range)
         \ 'words': metrics_final['words'] - metrics_initial['words'],
         \ 'lines': lines,
         \ 'range': b:parametric_range,
-        \ 'cache_range': b:parametric_cache_inclusive,
         \ }
 endfunction
 
