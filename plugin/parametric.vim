@@ -5,13 +5,13 @@ function s:getCurrentParagraphLineRange()
   let currentline = line('.')
 
   if !s:doc_changed()
-        \ && exists('b:pch_last_range')
-        \ && currentline >= b:pch_last_range[0] - 1
-        \ && currentline < b:pch_last_range[1]
-    return b:pch_last_range + [v:false]
+        \ && exists('b:parametric_last_range')
+        \ && currentline >= b:parametric_last_range[0] - 1
+        \ && currentline < b:parametric_last_range[1]
+    return b:parametric_last_range + [v:false]
   endif
 
-  let b:pch_range_updates = get(b:, 'pch_range_updates', 0) + 1
+  let b:parametric_range_updates = get(b:, 'parametric_range_updates', 0) + 1
 
   let blanklinepattern = '\m^$'
 
@@ -40,13 +40,13 @@ function s:getCurrentParagraphLineRange()
   let firstline = precedingblank + 1
   let followingline = followingblank
 
-  let b:pch_last_range = [firstline, followingline]
-  return b:pch_last_range + [v:true]
+  let b:parametric_last_range = [firstline, followingline]
+  return b:parametric_last_range + [v:true]
 endfunction
 
 function s:doc_changed()
-  if get(b:, 'pch_changedtick', 0) != b:changedtick
-    let b:pch_changedtick = b:changedtick
+  if get(b:, 'parametric_changedtick', 0) != b:changedtick
+    let b:parametric_changedtick = b:changedtick
     return v:true
   endif
   return v:false
@@ -57,7 +57,7 @@ function! g:ParagraphCharacterCount()
 
   let bounds_updated = bounds[2]
   if !bounds_updated
-    return b:pch_last_count
+    return b:parametric_last_count
   endif
 
   let firstline = bounds[0]
@@ -76,13 +76,13 @@ function! g:ParagraphCharacterCount()
   call assert_true(size >= 0, 'Expected size non-negative, but got '.size)
 
   if &verbose > 0
-    let b:pch_last_count = printf(
+    let b:parametric_last_count = printf(
           \ '%d updates | %d@%d -> %d@%d = %d',
-          \ b:pch_range_updates, firstline, firstchar, followingline, followingchar, size)
+          \ b:parametric_range_updates, firstline, firstchar, followingline, followingchar, size)
   else
-    let b:pch_last_count = printf('%d', size)
+    let b:parametric_last_count = printf('%d', size)
   endif
-  return b:pch_last_count
+  return b:parametric_last_count
 endfunction
 
 if !empty(globpath(&runtimepath, 'plugin/airline.vim', 1))
