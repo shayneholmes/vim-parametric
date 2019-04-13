@@ -106,13 +106,11 @@ function s:get_metrics(range)
 
   call assert_true(lines >= 0, 'Expected lines non-negative, but got '.lines)
 
-  " with length 0 chars, 0 words, 0 bytes, and 0 lines
-
-  let metrics_initial = s:get_metrics_at_line(first_line-1)
+  let metrics_initial = s:get_metrics_at_line(first_line - 1)
   let metrics_final = s:get_metrics_at_line(following_line)
 
-  " adjust bytes and chars to account for the extra newline before the
-  " paragraph
+  " adjust bytes and chars to account for the extra newline we counted before
+  " the paragraph
   return {
         \ 'bytes': metrics_final['bytes'] - metrics_initial['bytes'] - 1,
         \ 'chars': metrics_final['chars'] - metrics_initial['chars'] - 1,
@@ -137,8 +135,8 @@ function s:get_metrics_at_line(line)
 
   if a:line > line('$')
     " This line is at the end, so the buffer information has the right
-    " numbers, but add in the trailing newline that we count as part of the
-    " paragraph.
+    " numbers, except that it doesn't include the trailing newline; add it
+    " back in to byte and character counts
     let wc = wordcount()
     return {
           \ 'bytes': wc['bytes'] + 1,
