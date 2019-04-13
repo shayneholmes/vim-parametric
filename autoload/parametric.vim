@@ -1,5 +1,6 @@
 " vim: et ts=2 sts=2 sw=2 fdm=marker
 
+" wrapper {{{1
 function! parametric#get()
   if s:is_cache_valid()
     return b:parametric_result
@@ -12,19 +13,12 @@ function! parametric#get()
   let b:parametric_cache_inclusive = s:get_cached_range(b:parametric_range)
 
   let b:parametric_metrics = s:get_metrics(b:parametric_range)
-
-  let b:parametric_result = printf("%d", b:parametric_metrics['bytes'])
-
-  if &verbose > 0 " debug TODO: Move this to a formatter
-    let b:parametric_result = printf(
-          \ '%d updates | %s',
-          \ b:parametric_updates,
-          \ b:parametric_metrics)
-  endif
+  let b:parametric_result = s:format_wordcount(b:parametric_metrics)
 
   return b:parametric_result
 endfunction
 
+" caching {{{1
 function s:is_cache_valid()
   let current_line = line('.')
   return get(b:, 'parametric_changedtick', 0) == b:changedtick
@@ -55,6 +49,7 @@ function s:get_cached_range(paragraph_range)
   return [cached_begin, cached_end]
 endfunction
 
+" computation {{{1
 " return the range of the active paragraph: [first_line, following_line]
 " following_line is the first line not part of the active paragraph
 " first_line is part of the active paragraph
@@ -165,3 +160,19 @@ function s:get_metrics_at_line(line)
         \ 'words': wc['cursor_words']
         \ }
 endfunction
+
+" formatting {{{1
+let s:formatter = get(g:, 'parametric#formatter', 'default')
+
+" convenience function to interface with the formatter call
+function! s:format_wordcount(metrics)
+  return parametric#formatters#{s:formatter}#to_string(a:metrics)
+endfunction
+
+" check that the formatter exists, otherwise fall back to default
+if s:formatter !=# 'default'
+  execute 'runtime! autoload/parametric/formatters/'.s:formatter.'.vim'
+  if !exists('*parametric#formatters#{s:formatter}#to_string')
+    let s:formatter = 'default'
+  endif
+endif

@@ -9,7 +9,7 @@ endfunction
 if !empty(globpath(&runtimepath, 'plugin/airline.vim', 1))
   function! g:ParametricAirlinePlugin(...)
     function! g:ParametricAirlineFormat()
-      let str = printf('¶ %s', ParametricCount())
+      let str = ParametricCount()
       return str . g:airline_symbols.space . g:airline_right_alt_sep . g:airline_symbols.space
     endfunction
 
