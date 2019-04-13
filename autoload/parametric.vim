@@ -116,8 +116,6 @@ function s:get_metrics(range)
         \ 'chars': metrics_final['chars'] - metrics_initial['chars'] - 1,
         \ 'words': metrics_final['words'] - metrics_initial['words'],
         \ 'lines': lines,
-        \ 'range': b:parametric_range,
-        \ 'cache_range': b:parametric_cache_inclusive,
         \ }
 endfunction
 
