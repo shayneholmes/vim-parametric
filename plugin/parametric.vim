@@ -1,5 +1,11 @@
 " vim: et ts=2 sts=2 sw=2 fdm=marker
 
+if get(g:, 'parametric_loaded', 0)
+  finish
+endif
+
+let g:parametric_loaded = 1
+
 " get wordcount
 function! g:ParametricCount()
   return parametric#get()
