@@ -121,11 +121,14 @@ function s:get_metrics(range)
         \ }
 endfunction
 
-" return the number of bytes, chars, and words from the beginning of the
-" buffer to the indicated (blank) line
+" Return the number of bytes, chars, and words from the beginning of the
+" buffer to the indicated (blank) line.
+" We have to use the blank lines because wordcount() counts a word at the
+" cursor position.
 function s:get_metrics_at_line(line)
   if a:line == 0
-    " Hard-coded, because wordcount() needs a real line, and 0 never is
+    " Hard-coded, because wordcount() needs a real line, and 0 never is:
+    " it's just a convention to ask about the beginning of the buffer.
     return {
           \ 'bytes': 0,
           \ 'chars': 0,
@@ -134,7 +137,7 @@ function s:get_metrics_at_line(line)
   endif
 
   if a:line > line('$')
-    " This line is at the end, so the buffer information has the right
+    " This line is at the end, so the buffer wordcount has the right
     " numbers, except that it doesn't include the trailing newline; add it
     " back in to byte and character counts
     let wc = wordcount()
@@ -152,9 +155,11 @@ function s:get_metrics_at_line(line)
   let wc = wordcount()
   call setpos('.', save_pos)
 
+  " Always return at least 1 byte and char, even though wordcount() returns zero when
+  " an empty buffer doesn't have a trailing newline.
   return {
-        \ 'bytes': wc['cursor_bytes'],
-        \ 'chars': wc['cursor_chars'],
+        \ 'bytes': max([wc['cursor_bytes'], 1]),
+        \ 'chars': max([wc['cursor_chars'], 1]),
         \ 'words': wc['cursor_words']
         \ }
 endfunction
