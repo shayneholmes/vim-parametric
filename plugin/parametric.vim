@@ -1,6 +1,8 @@
 " vim: et ts=2 sts=2 sw=2 fdm=marker
 
-if get(g:, 'parametric_loaded', 0)
+if
+      \ !exists('*wordcount')
+      \ || get(g:, 'parametric_loaded', 0)
   finish
 endif
 
