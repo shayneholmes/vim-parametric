@@ -6,6 +6,8 @@ function! parametric#get()
     return b:parametric_result
   endif
 
+  " TODO: Only call this when fileformat changes
+  call s:set_newline_size()
   let b:parametric_changedtick = b:changedtick
   let b:parametric_updates = get(b:, 'parametric_updates', 0) + 1
 
@@ -112,8 +114,8 @@ function s:get_metrics(range)
   " adjust bytes and chars to account for the extra newline we counted before
   " the paragraph
   return {
-        \ 'bytes': metrics_final['bytes'] - metrics_initial['bytes'] - 1,
-        \ 'chars': metrics_final['chars'] - metrics_initial['chars'] - 1,
+        \ 'bytes': metrics_final['bytes'] - metrics_initial['bytes'] - b:parametric_eol_size,
+        \ 'chars': metrics_final['chars'] - metrics_initial['chars'] - b:parametric_eol_size,
         \ 'words': metrics_final['words'] - metrics_initial['words'],
         \ 'lines': lines,
         \ 'range': b:parametric_range,
@@ -142,8 +144,8 @@ function s:get_metrics_at_line(line)
     " back in to byte and character counts
     let wc = wordcount()
     return {
-          \ 'bytes': wc['bytes'] + 1,
-          \ 'chars': wc['chars'] + 1,
+          \ 'bytes': wc['bytes'] + b:parametric_eol_size,
+          \ 'chars': wc['chars'] + b:parametric_eol_size,
           \ 'words': wc['words'],
           \ }
   endif
@@ -155,13 +157,21 @@ function s:get_metrics_at_line(line)
   let wc = wordcount()
   call setpos('.', save_pos)
 
-  " Always return at least 1 byte and char, even though wordcount() returns zero when
-  " an empty buffer doesn't have a trailing newline.
+  " Always return at least the size of the eol, even though wordcount()
+  " returns zero when an empty buffer doesn't have a trailing newline.
   return {
-        \ 'bytes': max([wc['cursor_bytes'], 1]),
-        \ 'chars': max([wc['cursor_chars'], 1]),
+        \ 'bytes': max([wc['cursor_bytes'], b:parametric_eol_size]),
+        \ 'chars': max([wc['cursor_chars'], b:parametric_eol_size]),
         \ 'words': wc['cursor_words']
         \ }
+endfunction
+
+function s:set_newline_size()
+  " TODO: Find a smarter way to evaluate this
+  let b:parametric_eol_size = 1
+  if &fileformat == 'dos'
+    let b:parametric_eol_size = 2
+  endif
 endfunction
 
 " formatting {{{1
