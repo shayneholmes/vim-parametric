@@ -1,13 +1,21 @@
 " vim: et ts=2 sts=2 sw=2 fdm=marker
 
+" initialization {{{1
+augroup parametric
+  autocmd!
+  autocmd OptionSet fileformat call <SID>compute_eol_size()
+augroup END
+
 " wrapper {{{1
 function! parametric#get()
   if s:is_cache_valid()
     return b:parametric_result
   endif
 
-  " TODO: Only call this when fileformat changes
-  call s:set_newline_size()
+  if !exists('b:parametric_eol_size')
+    call s:compute_eol_size()
+  endif
+
   let b:parametric_changedtick = b:changedtick
   let b:parametric_updates = get(b:, 'parametric_updates', 0) + 1
 
@@ -166,12 +174,15 @@ function s:get_metrics_at_line(line)
         \ }
 endfunction
 
-function s:set_newline_size()
+function s:compute_eol_size()
   " TODO: Find a smarter way to evaluate this
   let b:parametric_eol_size = 1
   if &fileformat == 'dos'
     let b:parametric_eol_size = 2
   endif
+
+  " Invalidate cache
+  unlet! b:parametric_result
 endfunction
 
 " formatting {{{1
